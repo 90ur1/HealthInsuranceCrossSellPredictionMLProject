@@ -111,10 +111,10 @@ preprocessingForGLM<-function(data){
     }
     indx <- sapply(data[], is.factor)
     data[indx] <- lapply(data[indx], function(x) as.numeric(as.factor(x)))
-    data$Driving_License = NULL
-    data$Annual_Premium = NULL
-    data$Policy_Sales_Channel = NULL
-    data$Vintage = NULL
+    data$Driving_License = data%>%select(-Driving_License)
+    data$Annual_Premium = data%>%select(-Annual_Premium)
+    data$Policy_Sales_Channel = data%>%select(-Policy_Sales_Channel)
+    data$Vintage = data%>%select(-Vintage)
     return(data)
 }
 
