@@ -1,0 +1,13 @@
+name: HealthInsCrsSellPredictor
+title: HealthInsCrsSellPredictor
+username:
+account: ml-lab
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2981802
+bundleId: 3725396
+url: https://ml-lab.shinyapps.io/HealthInsCrsSellPredictor/
+when: 1602391331.33828
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: Assignment 1 - Group C-gouri-Oct9-ROSE.Rmd

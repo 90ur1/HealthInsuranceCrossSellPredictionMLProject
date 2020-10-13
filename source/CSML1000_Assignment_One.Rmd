@@ -1,0 +1,1079 @@
+---
+title: "CSML1000 Assignment 1: Health Insurance Cross Sell Prediction"
+author: "Jinping Bai, Joshua Dalphy, Choongil Kim and Gouri Kulkarni"
+date: "Tuesday, October 13th 2020"
+---
+
+```{r message=FALSE, warning=FALSE}
+```
+
+```{r setup, include=FALSE}
+library(knitr)
+library(ggplot2) 
+library(gridExtra)
+library(mice)  
+library(corrplot)
+library(pROC)
+library(png) 
+library(xtable)
+library(caret)
+library(dplyr)
+library(reshape2)
+library(arules)
+library(randomForest)
+library(ggthemes)
+library(scales)
+library(rpart)
+library(class)
+library(ROSE)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(car)
+library(e1071)
+library(tinytex)
+library(Hmisc)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Business Introduction
+
+## Abstract
+Cross-selling is a sales technique used to get a customer to spend more by purchasing a product that’s related to what’s being bought already.It is a sales technique used by Insurance companies to market new products to their existing customer base.Machine learning models can replace the manual task of sifting through customer files saving time and money.Implementing a machine learning model comes with it's challenges and we aim to address a few in this project.Data is a business critical asset and customer's privacy is of utmost importance.The team follows the Ethical ML framework and conduct the data analysis and model by using the methodology of CRISP-DM.
+
+
+## Background 
+ABC Insurance Ltd. , a leading Life Insurance Agent in the Town of XYZ has a large book of business comprising 381,109 households in the area.They are negotiating a deal with a major Auto Insurance carrier, Aplus Auto Insurance and plan to offer their product. Aplus Auto Insurance requires from ABC Insurance a report showing what percentage of their clients base would most likely purchase Auto insurance.Instead of manually sifting through their customer base, ABC Insurance Ltd. decided to approach the CAML1000 team for a solution to develop a machine learning system that will help them predict not just once, but over time, the households in their book of business that would be most likely candidates for Auto Insurance.The machine learning system would understand the customer base, and given the demographics of a prospect, be able to "predict" whether that prospect is a "good " or "bad" prospect. With this , the sales team at ABC Insurance will be better equipped in their cross-selling activity. They will be able to focus on the most lucrative leads making the most optimal use of their marketing dollars.
+
+The solution would serve many purposes:
+
+* gives Aplus auto an idea of the amount of business ABC Insurance can generate from the existing their book of business  
+* give ABC Insurance staff a tool that can help them prioritize clients for focused marketing campaigns 
+* let ABC Insurance project future revenues 
+* in realtime, provide notifications of possible future cross-sells 
+
+
+The client was unaware that the data they hold has the answers they seek.Some of their concerns and questions are :
+
+* What do you need from us to deliver us the solution ?
+* Will the system classify customers accurately?
+* What if a customer who should have qualified for Auto Insurance is not selected by the system?
+
+
+## Objective 
+The objective of this project is to come up with a model or models that would provide ABC Insurance Ltd. with an initial report for Aplus Insurance and develop a tool that can predict if a customer with certain characteristics is a suitable candidate for their upcoming cross selling campaign.
+
+## Business Understanding:
+Understand and identify business problems:
+
+
+* Identify the key target variables that have to be predicted (good candidate/ bad candidate)
+* What are the metrics associated with the target variable ?
+* Understand the project objectives and requirements
+* Formulate relevant and specific questions
+* what identifies a good prospect from a bad prospect?
+* what is the current practice in place used by sales to indentify good prospects from bad ones ?
+* Define a success metric for the project
+* Identify data sources that contain answers to questions
+* which data would be an accurate measure of the model target and the features of interest?
+* does the existing system need to collect and log additional kinds of data to address the problem and achieve the project goals?
+* are external data sources needed or do systems need to be updated to to collect new data?
+
+
+We then convert the knowledge into a data mining problem definition and develop a preliminary plan designed to achieve the objectives
+
+## Data Understanding:
+
+After understanding the business statement, we conclude that ABC Insurance could have chosen to market Auto Insurance to all their customers,yet that was not the optimal use of their marketing dollars.It is better to target to those customers who are more likely to respond to the Aplus Auto campaign This targeted campaign not only can save them marketing dollars but also will not disturb those customers who have no interest in the new product.If we have historical data with the reactions of customers to past campaigns, we can use the data to build a model to predict which customer is a good prospect or not.We proceed to collect relevant data , identify data quality problems, discover first insights into the data, detect interesting subjects from the data.
+
+
+The data for this project was downloaded from Kaggle, weblink: [https://www.kaggle.com/anmolkumar/health-insurance-cross-sell-prediction](https://www.kaggle.com/anmolkumar/health-insurance-cross-sell-prediction).
+For privacy and security, the customer names have been masked with an id.The data is in csv format.
+
+
+## Data Description :
+
+| Variable Name          | Variable Description                               |
+| :-------------------  | :------------------------------------------------ |
+|id                      |Unique ID for the customer                          | 
+|Gender                  |Gender of the customer                              |
+|Age                     |Age of the customer                                 |
+|Driving_License         |0 : Customer does not have DL                       |
+|                        |1 : Customer already has DL                         |
+|Region_Code             |Unique code for the region of the customer          |
+|Previously_Insured      |1 : Customer already has Vehicle Insurance.         |
+|                        |0 : Customer doesn't have Vehicle Insurance.        |
+|Vehicle_Age             |Age of the Vehicle                                  |
+|Vehicle_Damage          |1 : Customer's vehicle damaged in the past.         |
+|                        |0 : Customer"s vehicle no damaged in the past.      |
+|Annual_Premium          |The premium insurec paid in the year                |
+|Policy_Sales_Channel    |Anonymized Code for outreach channels for sales.    |
+|Vintage                 |Number of Days, Customer has been associated with.  |
+|                        |the company                                         |
+|Response                |1 : Customer is interested                          |
+|                        |0 : Customer is not interested                      |
+
+
+
+# Data Exploration
+
+## Raw data understaing
+```{r echo=FALSE}
+data=read.csv('train.csv', header = TRUE, na.strings = c("NA","","#NA"))
+raw_data = data
+```
+
+Determine the dimension of our dataset:
+
+```{r}
+dim(raw_data)
+```
+
+View the contents and structure of our dataset:
+
+```{r}
+head(raw_data)
+```
+
+View the main structure of the raw data
+
+```{r}
+str(raw_data)
+```
+
+
+After inspecting the dataset, the variables can be divided into two categories: categorical and numeric. The are divided as follows:
+
+* Categorical variables: Gender, Driving_License, Previously_Insured, Vehicle_Age, Vehicle_Damage and Response (target variable)
+
+* Numeric variables: id, Age, Region_Code, Annual_Premium, Policy_Sales_Channel and Vintage
+
+Currently, certain of the categorical variables are being represented in numeric form (1 or 0), these will be transformed to Yes/No in the dataset. The former applies to Driving_License, Previously_Insured, Vehicle_Damage and Response. Additionally, upon further inspection, there are variables currently being represented as numeric which would be better suited as categorical, this applies to: Region_code and Policy_Sales_Channel (need explanation).
+
+```{r}
+raw_data$Driving_License= as.factor(raw_data$Driving_License)
+raw_data$Region_Code = as.factor(raw_data$Region_Code)
+raw_data$Previously_Insured = as.factor(raw_data$Previously_Insured)
+raw_data$Policy_Sales_Channel = as.factor(raw_data$Policy_Sales_Channel)
+```
+
+The objective of this project is to predict whether a customer is likely to purchase vehicle insurance. The target variable in this analysis is Response. Let's look at it's distribution:
+
+```{r}
+hist(data$Response)
+```
+To better understand the target variable, calculate the proportion tables
+
+```{r}
+response_freq_tbl = table(raw_data$Response)
+knitr::kable(prop.table(response_freq_tbl), caption = "Proportion of positive/negative responses")
+```
+
+### Categorical Variable Exploration
+
+```{r}
+attach(raw_data)
+```
+In this section we will explore each categorical variable.
+
+Here is the frequency table for the Gender variable
+
+```{r}
+freq_tblGender=table(Gender)
+knitr::kable(freq_tblGender,caption = "Gender Frequency")
+```
+
+Investigate the proportion of men and women with respect to the target variable
+
+```{r}
+freq_xtabGender=xtabs(~Gender+Response)
+```
+
+```{r}
+barplot(prop.table(freq_xtabGender,2),
+        legend=rownames(freq_xtabGender),
+        ylab="Response",
+        main = "Difference in Response Variable for Man and Female",
+        col = c("pink", "cornflowerblue")
+        )
+```
+
+
+Here is the frequency table for the Vehicle Age variable
+
+```{r}
+freq_tbl_Vehicle_Age=table(Vehicle_Age)
+
+knitr::kable(freq_tbl_Vehicle_Age,caption = "Vehicle Age Frequency")
+```
+
+Investigate the proportion of vehicle classes with respect to the target variable
+
+```{r}
+freq_xtab_Vehicle_Age=xtabs(~Vehicle_Age+Response)
+```
+
+```{r}
+barplot(prop.table(freq_xtab_Vehicle_Age),
+        ylab="Response",
+        main = "Proportion of Response  ",
+        col = c("bisque","orange","lightblue"),
+        ylim = c(0,1),
+        legend=rownames(freq_xtab_Vehicle_Age))
+```
+
+
+Vehicle Damage
+
+Here is the frequency table for the Vehicle Damage variable
+
+```{r}
+freq_tbl_Vehicle_Damage = table(Vehicle_Damage)
+
+knitr::kable(freq_tbl_Vehicle_Damage, caption = "Vehicle Damage Frequency")
+```
+Investigate the proportion of vehicle damage with respect to the target variable
+```{r}
+freq_xtab_Vehicle_Damage = xtabs(~Vehicle_Damage+Response)
+```
+
+```{r}
+barplot(prop.table(freq_xtab_Vehicle_Damage),
+        ylab="Response",
+        xlab="Vehicle_Damage",
+        col=c("orange","deepskyblue1"),
+        ylim = c(0,1),
+        legend=rownames(freq_xtab_Vehicle_Damage))
+```
+
+
+Driving License
+
+Here is the frequency table for the Driving License variable
+
+```{r}
+freq_tbl_Driving_License = table(Driving_License)
+
+knitr::kable(freq_tbl_Driving_License, caption = "Driving License Frequency")
+```
+
+Investigate the proportion of Driving License with respect to the target variable
+
+```{r}
+freq_xtab_Driving_License = xtabs(~Driving_License+Response)
+```
+
+```{r}
+barplot(prop.table(freq_xtab_Driving_License),
+        ylab="Response",
+        xlab="Driving License",
+        col=c("orange","deepskyblue1"),
+        ylim = c(0,1),
+        legend=rownames(freq_xtab_Vehicle_Damage))
+```
+
+
+Previously Insured
+
+Here is the frequency table for the Previously Insured variable
+
+```{r}
+freq_tbl_Previously_Insured = table(Previously_Insured)
+
+knitr::kable(freq_tbl_Previously_Insured, caption = "Previously Insured Frequency")
+```
+
+Investigate the proportion of Previously Insured with respect to the target variable
+
+```{r}
+freq_xtab_Previously_Insured = xtabs(~Previously_Insured+Response)
+```
+
+```{r}
+barplot(prop.table(freq_xtab_Previously_Insured),
+        ylab="Response",
+        xlab="Driving License",
+        col=c("orange","deepskyblue1"),
+        ylim = c(0,1),
+        legend=rownames(freq_xtab_Previously_Insured))
+```
+
+
+### Numeric Variable Exploration
+
+In this section data exploration is conducted on the numeric variables. These variables are: Age, Region_code, Annual_Premium, Policy_Sales_Channel and Vintage
+
+```{r}
+colNames <- c("id","Annual_Premium","Age","Vintage","Response")
+
+numeric_data <- raw_data[colNames]
+```
+
+Determine and visualize the distribution of the numeric variables:
+
+```{r}
+melt_data = melt(numeric_data, id.vars=c("id"))
+
+ggplot(data = melt_data, mapping = aes(x = value)) +   geom_histogram(bins = 10) +
+facet_wrap(~variable, scales = 'free_x')
+```
+
+Approach to explore numeric variables Vs binary target(Response). First Bin numeric variables and then create table that shows average value of target by bin and visualize on a graph
+
+First create a categorical version of target variable .
+```{r}
+raw_data = cbind(raw_data, Response_Class= ifelse(raw_data$Response==1, "Yes","No"))
+```
+
+
+Binning Numeric Variables for a better visualization about the relationship with the target variable, Response
+
+
+```{r }
+library(Hmisc)
+
+```
+Create factor for Ages from minumum to max by using the bin function divided into 10 group base on the average age of each group.
+
+
+```{r}
+binned_Age = cut2(data$Age, g= 10,minmax=TRUE, oneval = TRUE)
+```
+
+```{r}
+data_binned_Age=cbind(raw_data,binned_Age)
+```
+
+Now view the histogram for Age after the binning process
+
+```{r}
+barplot(table(binned_Age),
+main = 'Age Distribution post Binning',
+ylab = 'Count',
+las = 1 )
+```
+
+Let's visualize the relationship between binned_Age and Response_Class.
+
+```{r}
+ggplot(data_binned_Age, aes(binned_Age, ..count..)) + geom_bar(aes(fill = Response_Class), position = "stack")
+```
+Age in the range of 37 to 48 responsed most.
+
+use the same way to bin Vintage from shortest days to longest days of staying in the insurance.
+
+```{r}
+binned_Vintage = cut2(data$Vintage, g= 20,minmax=TRUE, oneval = TRUE)
+```
+
+```{r}
+data_binned_Vintage = cbind(data_binned_Age, binned_Vintage)
+```
+
+```{r}
+binned_data = data_binned_Vintage
+```
+
+```{r}
+ggplot(binned_data, aes(binned_Vintage, ..count..)) + geom_bar(aes(fill = Gender), position = "stack")+ theme(axis.text.x=element_text(angle = -90, hjust = 0))
+
+```
+In general, male response more then that of female does.
+
+
+#### Numeric variables correlation Analysis
+
+check the independent numeric variables relationship with each others by using correlation matrix to check the correlation coeficient between independent variables.
+
+```{r}
+numeric_cols = sapply(binned_data, is.numeric)
+```
+
+```{r}
+data_num_only= binned_data[, numeric_cols]
+```
+
+
+Remove 'id' and 'Response' columns before doing correlation matrix
+
+```{r}
+data_num_only$id = NULL
+data_num_only$Response = NULL
+```
+
+Correlation matrix
+
+```{r}
+cor_result = rcorr(as.matrix(data_num_only))
+```
+
+Correlation Matrix with statistical signiticance, R square 
+
+```{r}
+corrplot(cor_result$r, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+```
+
+No multilinearity between numeric variables.
+
+
+##  Data Preparation
+
+In this section we will import the original data to do data preparation for modeling
+
+```{r}
+data = read.csv("train.csv", header = TRUE)
+``` 
+
+###  Missing Value Treatment
+
+The missing values can be determined:
+
+```{r}
+# Determine the percentage of missing values per column in the data table
+pMiss = function(x){sum(is.na(x))/length(x)*100}
+apply(data,2,pMiss)
+```
+There are no missing values in our dataset
+
+
+Remove "id" column
+
+```{r}
+data$id=NULL
+```
+
+
+### Encoding categorical data and factor levels grouping
+
+Convert Gender, Vehicle_Age, Vehicle_Damage from categorical variables to factors
+
+```{r}
+data$Gender = factor(data$Gender,
+                         levels = c('Male', 'Female'),
+                         labels = c(1, 2))
+data$Vehicle_Age = factor(data$Vehicle_Age,
+                           levels = c('> 2 Years', '1-2 Year', '< 1 Year'),
+                           labels = c(2,1,0))
+data$Vehicle_Damage = factor(data$Vehicle_Damage,
+                             levels = c("Yes", "No"),
+                             labels = c(1,0))
+```
+
+A categorical variable can be divided into nominal categorical variable and ordinal categorical variable.Continuous class variables are the default value in R. They are stored as numeric or integer. Driving_License and Previously_Insured are nominal cateforical variables but labeled as intergers. We need to convert them into factors.
+
+```{r}
+data$Driving_License = as.factor(data$Driving_License)
+data$Previously_Insured = as.factor(data$Previously_Insured)
+```
+
+Convert numeric variables to levels of factors
+
+"Region_code's variables and  Policy_Sales_Channel's variables are in the format of numeric. However those code number or channel numbers are characters. Region_Code are the 	unique code for the region of the customer; Policy_Sales_Channel are the	anonymized Code for the channel of outreaching to the customer ie. Different Agents, Over Mail, Over Phone, In Person, etc. So we need to convert those numerics to charactors and then group them by the frequency.
+
+```{r}
+data$Region_Code = as.factor(data$Region_Code)
+data$Policy_Sales_Channel = as.factor(data$Policy_Sales_Channel)
+```
+
+Check how many levels of Region_Code
+
+```{r}
+levels(data$Region_Code)
+```
+
+There are 53 levels(0 - 52) in Region_Code. We need check the order of the frequency and group them into less levels to avoid the issue of too manu levels of factors in one attribute when we do the modeling.
+
+```{r}
+library(ggplot2)
+```
+
+Check the frequency of each level in Region_Code
+
+```{r}
+g1 = ggplot(data, aes(x=character(1), fill=Region_Code))+
+   geom_bar(width=1, colour="black")+
+   coord_polar(theta="y")+
+   theme_void()
+print(g1)
+```
+
+
+```{r}
+sort(table(data$Region_Code), decreasing = TRUE)
+
+```
+
+The top 8 frequency Region_Code are "28", "8", "46", "41", "15", "30","29","50". Base on above plot and sort table we can group the Region_Code by the frequency into 9 groups including "other' group.
+
+```{r}
+library(forcats)
+```
+```{r}
+library(dplyr)
+```
+```{r}
+data$Region_Code =forcats::fct_lump_n(data$Region_Code,8, other_level = "Other")
+```
+```{r}
+levels(data$Region_Code)
+```
+
+We get 9 levels of Region_Code.
+
+```{r}
+g1 = ggplot(data, aes(x=factor(1), fill=Region_Code))+
+   geom_bar(width=1, colour="black")+
+   coord_polar(theta="y")+
+   theme_void()
+print(g1)
+```
+Relabel the factor levers of Region_Code
+
+```{r}
+data$Region_Code = factor(data$Region_Code,
+                         levels = c('15','28','29','30','41','46','50', '8', 'Other'),
+                         labels = c(1, 2,3,4,5,6,7,8,9))
+```
+
+```{r}
+levels(data$Region_Code)
+```
+
+Using forcats method check the order of frequency in Policy_Sales_Channel
+
+```{r}
+g2 = ggplot(data, aes(x=character(1), fill=Policy_Sales_Channel))+
+   geom_bar(width=1, colour="black")+
+   coord_polar(theta="y")+
+   theme_void()
+print(g2)
+```
+
+Base on above plot, that we can group the Policy_Sales_Channel by the frequency into 6 groups including one "Other" group.
+
+```{r}
+data$Policy_Sales_Channel =forcats::fct_lump_n(data$Policy_Sales_Channel,5, other_level = "Other")
+```
+
+```{r}
+g2 = ggplot(data, aes(x=factor(1), fill=Policy_Sales_Channel))+
+   geom_bar(width=1, colour="black")+
+   coord_polar(theta="y")+
+   theme_void()
+print(g2)
+```
+Relabel the levels of Policy_Sales_Channel
+
+```{r}
+data$Policy_Sales_Channel = factor(data$Policy_Sales_Channel,
+                         levels = c('26', '124','152','156', '160','Other'),
+                         labels = c(1,2,3,4,5,6))
+```
+
+```{r}
+levels(data$Policy_Sales_Channel)
+```
+
+### Outlier Treatment
+
+Using Capping method to treat the Annual_Premium outliers issue.
+
+```{r}
+pcap <- function(x){
+  for (i in which(sapply(x, is.numeric))) {
+    quantiles <- quantile( x[,i], c(.05, .95 ), na.rm =TRUE)
+    x[,i] = ifelse(x[,i] < quantiles[1] , quantiles[1], x[,i])
+    x[,i] = ifelse(x[,i] > quantiles[2] , quantiles[2], x[,i])}
+  x}
+```
+
+```{r}
+data = pcap(data)
+summary(data$Annual_Premium)
+
+```
+
+### Solve overfitting train data issues
+
+There is an article in a website "If you choose too large of a training set you run the risk of overfitting your model. Overfitting is a classic mistake people make when first entering the field of machine learning." [https://machinelearningmastery.com/arent-results-good-thought-youre-probably-overfitting/](https://machinelearningmastery.com/arent-results-good-thought-youre-probably-overfitting/)
+
+We have 381,109.00 observations we will going to only use 10% of the raw data as a model data and split the 10% into train/test datasets.
+
+```{r}
+library(caret)
+library(caTools)
+```
+
+Using the Partition method to get a new dataset and use the new data as a sample data to do the medolling.We will use the10% observations to do the data modeling 
+
+```{r}
+set.seed(198)
+sample_split = createDataPartition(data$Response, p = 0.1, list=FALSE)
+sampleData = data[sample_split,]
+remainData = data[-sample_split,]
+```
+
+```{r}
+dim(sampleData)
+dim(remainData)
+```
+
+```{r}
+library(data.table)
+library(dplyr)
+```
+
+
+convert all sampleDate factor levels to numeric so that we can scale the data to do the modelling.
+
+```{r}
+indx <- sapply(sampleData[], is.factor)
+sampleData[indx] <- lapply(sampleData[indx], function(x) as.numeric(as.factor(x)))
+```
+
+convert Response to factor variables.
+
+```{r}
+sampleData$Response = as.factor(sampleData$Response)
+```
+
+
+### Split sample data to training set and testing set
+
+Split the sampleDate to generate train and test dataset.We only use 20% of the sampleData as the training set. 
+
+```{r}
+set.seed(198)
+split = sample.split(sampleData$Response, SplitRatio = 0.2)
+train = subset(sampleData, split == TRUE)
+test = subset(sampleData, split == FALSE)
+```
+```{r}
+dim(train)
+dim(test)
+```
+
+Comparing the train dataset and original dataset.
+
+```{r}
+
+table(data$Response)
+prop.table(table(data$Response))
+
+```
+```{r}
+table(train$Response)
+prop.table(table(train$Response))
+
+```
+
+Both yhe Percentage of customer who have positive response"1" is 12% in the original data and the train data. So that the small sample of train set can represent the original data. We will use the train dataset to do our model.
+
+### Features scaling
+
+We only need to scale continues numeric in both train dataset and test dataset.
+
+```{r}
+train[,c(2,8,10) ] = scale(train[, c(2,8,10)])
+```
+```{r}
+str(train)
+```
+
+```{r}
+test[,c(2,8,10) ] = scale(test[, c(2,8,10)])
+```
+```{r}
+str(test)
+```
+
+
+## Create  Models to analize feature sellection
+
+### Logistic regression classifier model
+```{r}
+glmModel = glm(Response ~., train, family = binomial)
+```
+```{r}
+summary(glmModel)
+```
+
+### Features selection
+
+Gender, Driving_License, Annual_Premium , Policy_Sales_Channel and Vintage have P_valua are much more than 0.05. which means they do not infleunce the traget variable, Response, much.  We remove these 5 features from both the train dataset and test dataset. 
+
+```{r}
+train$Gender = NULL
+train$Driving_License = NULL
+train$Annual_Premium = NULL
+train$Policy_Sales_Channel = NULL
+train$Vintage = NULL
+
+```
+```{r}
+test$Gender = NULL
+test$Driving_License = NULL
+test$Annual_Premium = NULL
+test$Policy_Sales_Channel = NULL
+test$Vintage = NULL
+```
+
+```{r}
+dim(train)
+dim(test)
+```
+```{r}
+str(train)
+```
+
+
+```{r}
+str(test)
+```
+
+```{r}
+str(test)
+```
+
+### New Logistic Regression model after feature selection
+
+```{r}
+glmNew = glm(Response ~., train, family = binomial)
+```
+
+Use the new glm model to do the probability prediction. 
+
+```{r}
+prob_pred = predict(glmNew, type = 'response', test[-6])
+```
+
+Change prob_pred percentage of probability to "1", "0" binimial number.
+```{r}
+y_pred = ifelse(prob_pred >0.5, 1, 0)
+```
+
+Convert "y_pred" list vector to atomic vector matching with the test$Response for comparison
+
+```{r}
+y_pred = as.character(as.numeric(as.integer(y_pred)))
+```
+
+
+```{r}
+cm = table(test[,6], y_pred)
+```
+```{r}
+cm
+```
+
+#### new logistic regression statistic analysis
+
+```{r}
+library(caret)
+```
+
+```{r}
+confusionMatrix(as.factor(y_pred), test$Response, positive = "1")
+```
+
+
+Accuracy can be a misleading metric for imbalanced data sets. Consider a sample with 95 negative and 5 positive values. Classifying all values as negative in this case gives 0.95 accuracy score.
+
+Same issue as our original file. Althogh we got 0.8789 accuracy , however the Sensitivity is only 0.004. That means the model detect customers did not response very well, however did not do good job at detecting those customers who are interested in the cross sell. Our purpose of the project is to help client find out who are those customer have more likely to purchase the vehicles. There is strong imbalance clissificaton issues in the original data. 
+
+What is Imbalanced Classification ?
+
+"Imbalanced classification is a supervised learning problem where one class outnumbers other class by a large proportion. This problem is faced more frequently in binary classification problems than multi-level classification problems." For more information about imbalande classification, check link: [https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/](https://www.analyticsvidhya.com/blog/2016/03/practical-guide-deal-imbalanced-classification-problems/)
+
+#### Solve the imbalance classification
+
+```{r}
+library(ROSE)
+```
+
+We use oversampling method to deal with the imbalanced classification issues.
+
+```{r}
+table(train$Response)
+```
+
+```{r}
+6701*2
+```
+
+```{r}
+over = ovun.sample(Response~., data=train, method = "over", N=13402)$data
+```
+
+```{r}
+summary (over)
+```
+
+#### Make another new logistic regression model by using the treated imbalance training data as the trainning dataset.
+
+```{r}
+glm_over = glm(Response~., over, family = binomial)
+
+```
+
+```{r}
+over_pred = predict(glm_over, type = 'response', test[-6])
+```
+
+```{r}
+y_over_pred = ifelse(over_pred >0.5, 1, 0)
+```
+
+```{r}
+y_over_pred = as.factor(y_over_pred)
+```
+
+#### Use Confusion Matrix to analize the glm model after oversampling
+
+```{r}
+library(caret)
+```
+
+```{r}
+confusionMatrix(as.factor(y_over_pred), test$Response, positive = "1")
+```
+
+We got 0.97 Sensitivity rate. That means this model can predict 97% of those customer who are intersted the cross sell. So far we got a good model. Let try other models to see which one is fit the data most. We will focus on the model Sensitivity value, which indicate how much the percentage accuracy the model catched for those customer who is interested in the cross sell.
+
+# Apply the treated training set to other models
+
+## Random Forest Prediction
+
+Random Forest is a classification algorithm used in supervised machine learning and consists of constructing multiple decision trees during training and outpus the mode of the predicted variable of each decision tree <Hashmat's notes>. For the current application, the predicted variable is Response and consists of a Yes/No value. The function allows the user to customize multiple input parameters, including among other, the number of trees, number of features, tree depth and the minimum leaf size. This Random Forest model uses the default parameters available in R, with the sole exception being the number of trees. The former was set to 100, as numbers above started to affect processing time. The results of the model are summarized in the confusion matrix below:
+
+```{r}
+library(randomForest)
+```
+
+```{r}
+set.seed(123)
+rf_model <- randomForest(factor(over$Response) ~ .,data = over, importance= TRUE, ntree = 100)
+
+```
+
+Predict using the test set
+
+```{r}
+prediction <- predict(rf_model,subset(test,select = -c(11)))
+```
+
+Save the solution to a dataframe with the Response (prediction)
+
+```{r}
+solution <- data.frame(model_Response = prediction)
+
+confusion_matrix = table(test$Response,prediction)
+
+knitr::kable(confusion_matrix,caption = "Random Forest Confusion Matrix")
+```
+
+Using the information provided in the matrix, the accuracy and sensitivity of the model can be calculated using the following two equations:
+
+Accuracy
+
+(n_truePositive + n_trueNegative)/(n_truePositive + n_trueNegative + n_falsePositive + n_falseNegative)
+
+Sensitivity
+
+n_truePositive/(n_truePositive + n_falsePositive)
+
+where:
+n_truePositive is the number true positive occurances, n_trueNegative is the number of true negative occurances, n_falsePositive is the number of false positive occurances and lastly, n_falsePositive is the number of false positives occurances present in the confusion matrix.
+
+```{r}
+a = confusion_matrix[1,1]
+b = confusion_matrix[1,2]
+c = confusion_matrix[2,1]
+d = confusion_matrix[2,2]
+
+accuracy = round((a+d)/(a+b+c+d),2)
+sensitivity_rf = round(a/(a+c),2)
+```
+
+```{r}
+accuracy
+sensitivity_rf
+```
+
+Based on the equation above, the accuracy and sensitivity of the Random Forest model were determined to be 0.69 and 0.98, respectively. An additional advantage of using the Random Forest algorithm is that it can be used to assess the relative importance of each feature, this is shown in the figure below.
+
+```{r}
+library(ggthemes)
+library(scales) 
+```
+
+Get features importance 
+
+```{r}
+varImpPlot(rf_model, main="")
+```
+
+The left figure above, is the important features order of Random Forest.it appears that the feature could be grouped into three categories: high importance, moderate importance and low importance. Previously_Insured and Vehicle_Damage would be categorized as the most important features when predicting response. Age, Vehicle_Age and Region_code would fall under moderate importance. The right figure is the important features order of the model of logistic regression which using the Gini importance method.
+
+
+```{r}
+confusionMatrix(predict(rf_model, test), test$Response, positive = "1")
+```
+
+Sensitivity is 0.9189
+
+## Support Vector Classification (SVM_Classification)
+
+SVM or Support Vector Machine is a linear model for classification and regression problems. It can solve linear and non-linear problems and work well for many practical problems. The idea of SVM is simple: The algorithm creates a line or a hyperplane which separates the data into classes.However, the main idea is always the same: to minimize error, individualizing the hyperplane which maximizes the margin, keeping in mind that part of the error is tolerated. For more information link [http://ocdevel.com/mlg/13](http://ocdevel.com/mlg/13)
+
+There are two types of SVM. We will use the SVClassification of SVM for classification algorithum. 
+
+```{r}
+library(e1071)
+```
+```{r}
+set.seed(123)
+svm_model <- svm(Response ~ ., data=over, type = 'C-classification', kernel = 'radial') 
+```
+```{r}
+predSVM <- predict(svm_model, test[-6]) 
+```
+
+```{r}
+set.seed(123)
+confusionMatrix(as.factor(predSVM), test$Response, positive = "1")
+```
+
+ Sensitivity is 0.93, close to the one of Random Forest.
+ 
+ 
+```{r}
+library(pROC)
+```
+
+
+```{r}
+roc.curve(test$Response, predSVM,plotit= TRUE, add.roc = FALSE)
+```
+
+
+## Naive Bayes Model
+
+```{r}
+library(e1071)
+```
+
+```{r}
+set.seed(123)
+naive_model=naiveBayes(Response~.,
+  data=over)
+```
+
+```{r}
+predictTestDataWithoutKFold = predict(naive_model, test%>%select(-Response))
+```
+
+```{r}
+confusionMatrix(as.factor(predictTestDataWithoutKFold), test$Response, positive = "1")
+```
+
+Sensitivity score is 0.9794. Same as logistic regression. 
+
+## Decision Tree
+
+```{r}
+library(rpart)
+```
+```{r}
+set.seed(123)
+treeModel = rpart(Response~., over  )
+```
+```{r}
+predTree = predict(treeModel, test[-6])
+```
+
+```{r}
+y_predTree = ifelse(over_pred >0.5, 1, 0)
+```
+```{r}
+rpart.plot(treeModel)
+```
+
+Decision Tree Model Evaluation
+
+Making the Confusion Matrix
+
+```{r}
+set.seed(123)
+confusionMatrix(as.factor(y_predTree), test$Response, positive = "1")
+```
+
+```{r}
+accuracy.meas(test$Response, y_predTree)
+```
+
+
+These metrics provide an interesting interpretation. With threshold value as 0.5, Precision = 0.247 says there are no false positives. Recall = 0.978 is very much high and indicates that we have lower number of false negatives as well. Threshold values can be altered also. F = 0.197 measn we have very accuracy of this model.
+
+Recall in this context is also referred to as the true positive rate or sensitivity, and precision is also referred to as positive predictive value (PPV); other related measures used in classification include true negative rate and accuracy.True negative rate is also called specificity.
+
+```{r}
+roc.curve(test$Response, y_predTree)
+```
+
+
+# Model Deployment
+
+## Shiny.app pipeline
+
+After we have chosen a model, we deploy the model with a data pipeline to a production or production-like environment for final user acceptance.This makes ready for integration with the client's existing applications.Our model was deployed on R Shiny and presented to ABC Insurance Ltd.
+
+From the  Business understanding, we gathered that the client wishes to benefit from this project in the following ways :
+
+* give Aplus auto an idea of the amount of business ABC Insurance can generate from the existing their book of business
+* give ABC Insurance staff a tool that can help them prioritize clients for focused marketing campaigns
+* let ABC Insurance project future revenues
+* in realtime, provide notifications of possible future cross-sells
+
+A pipleline can be developed for each of these requirements and is outside the scope of this project. Predictions can be made in realtime ir batch basis.We have deployed the model to predict a cross sell based on customer input provided by the user , the Gender, Age, Region Code, Policy Sales Channel,Vehicle Age and Vehicle Damage.Another deployment provides data file upload capability allowing predictions for entire datasets
+
+shiny.app link[https://ml-lab.shinyapps.io/HealthInsCrsSellPredictor/](https://ml-lab.shinyapps.io/HealthInsCrsSellPredictor/)
+
+## Publish our models in Github 
+
+We also published our data anlysis and modeling in the Github. [https://github.com/v2msLabs/ML1000-1](https://github.com/v2msLabs/ML1000-1)
+
+# Conclusion
+
+We have done the data exploration and visulization to have a basic statistc backgroud information of our raw data. Then we did some data preparation for modeling, including check missing data, convert data variables for modeling, treat outliers issues. When we do the first model, logistic regression, I found out that the model had overfitting issues and imbalanced classification. After solving these two big issues, we are able to generate several applicable models which all have more the 93% Sensitivity rate( recall rate, true positive).We have Decision tree, Naive bayes and logistic Regresion have the highest True Positive Rate ( Sensitivity rate). We recommend the Insurance company use the logistic regression model due to the other two models may cost more on the daily usage in the field of business management and technical maintaining.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
