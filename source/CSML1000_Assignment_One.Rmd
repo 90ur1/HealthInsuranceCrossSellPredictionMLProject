@@ -1,7 +1,8 @@
 ---
-title: "CSML1000 Assignment 1: Health Insurance Cross Sell Prediction"
+title: 'CSML1000 Assignment 1: Health Insurance Cross Sell Prediction'
 author: "Jinping Bai, Joshua Dalphy, Choongil Kim and Gouri Kulkarni"
 date: "Tuesday, October 13th 2020"
+output: pdf_document
 ---
 
 ```{r message=FALSE, warning=FALSE}
@@ -1041,7 +1042,7 @@ shiny.app link[https://ml-lab.shinyapps.io/HealthInsCrsSellPredictor/](https://m
 
 ## Publish our models in Github 
 
-We also published our data anlysis and modeling in the Github. [https://github.com/v2msLabs/ML1000-1](https://github.com/v2msLabs/ML1000-1)
+We also published our data anlysis and modeling in the Github. [https://github.com/csml1000groupc/HealthInsuranceCrossSellPredictionMLProject](https://github.com/csml1000groupc/HealthInsuranceCrossSellPredictionMLProject)
 
 # Conclusion
 

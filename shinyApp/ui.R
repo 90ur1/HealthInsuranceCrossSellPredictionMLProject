@@ -95,16 +95,17 @@ shinyUI(fluidPage(
                      tableOutput("inputDataTable_4"),
                      h4("Prediction"),
                      verbatimTextOutput("predictionResultByGLM")
-            ),
-            tabPanel("Naive-Bayesian Model",
-                     # Output: Verbatim text for data summary ----
-                     h2("Prediction by Naive-Bayesian Model"),
-                     h4("Input Data"),
-                     tableOutput("inputDataTable_1"),
-                     tableOutput("inputDataTable_2"),
-                     h4("Prediction"),
-                     verbatimTextOutput("predictionResultByNaiveBayesian")
             )
+            # ,
+            # tabPanel("Naive-Bayesian Model",
+            #          # Output: Verbatim text for data summary ----
+            #          h2("Prediction by Naive-Bayesian Model"),
+            #          h4("Input Data"),
+            #          tableOutput("inputDataTable_1"),
+            #          tableOutput("inputDataTable_2"),
+            #          h4("Prediction"),
+            #          verbatimTextOutput("predictionResultByNaiveBayesian")
+            # )
             # , 
             # tabPanel("temp",
             #          h2("Prediction by Sample"),
